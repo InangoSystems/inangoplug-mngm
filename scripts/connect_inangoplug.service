@@ -1,0 +1,11 @@
+[Unit]
+Description=Inangoplug connection to server
+Requires=check_inangoplug_enabled.service
+After=check_inangoplug_enabled.service
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=0
+ExecStart=/bin/sh -c '/etc/scripts/connect_inangoplug.sh'

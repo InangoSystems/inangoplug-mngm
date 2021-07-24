@@ -1,0 +1,12 @@
+[Unit]
+Description=OvS enabled checking
+After=PsmSsp.service
+Before=ovsdb-server.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sh -c '/etc/scripts/run_inangoplug.sh'
+ExecStart=/bin/sh -c 'echo "echo OvS is enabled, starting ovsdb..."'
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,9 @@
+[Unit]
+Description=Checks that the PandM initialized
+
+[Path]
+PathExists=/tmp/pam_initialized
+
+[Install]
+WantedBy=multi-user.target
+

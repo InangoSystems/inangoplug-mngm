@@ -1,0 +1,12 @@
+[Unit]
+Description=CcspInangoplugComponent service
+
+[Service]
+Type=forking
+WorkingDirectory=/usr/ccsp/inangoplugcomponent
+Environment="Subsys=eRT."
+Environment="LOG4C_RCPATH=/etc"
+EnvironmentFile=/etc/device.properties
+ExecStart=/usr/bin/inangoplug_component -subsys $Subsys
+StandardOutput=journal+console
+

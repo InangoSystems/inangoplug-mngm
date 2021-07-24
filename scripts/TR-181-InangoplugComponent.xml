@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<dataModelInfo>
+  <version>1</version>
+  <moduleName>InangoplugComponent</moduleName>
+  <author></author>
+  <description></description>
+  <library />
+  <objects>
+    <object>
+      <name>X_INANGO_Inangoplug</name>
+      <objectType>object</objectType>
+      <functions>
+        <func_GetParamStringValue>InangoplugComponent_GetParamStringValue</func_GetParamStringValue>
+        <func_SetParamStringValue>InangoplugComponent_SetParamStringValue</func_SetParamStringValue>
+        <func_GetParamBoolValue>InangoplugComponent_GetParamBoolValue</func_GetParamBoolValue>
+        <func_SetParamBoolValue>InangoplugComponent_SetParamBoolValue</func_SetParamBoolValue>
+      </functions>
+      <parameters>
+        <parameter>
+          <name>InangoplugEnable</name>
+          <type>boolean</type>
+          <syntax>bool</syntax>
+          <writable>true</writable>
+        </parameter>
+        <parameter>
+          <name>InangoplugLogin</name>
+          <type>string(64)</type>
+          <syntax>string</syntax>
+          <writable>true</writable>
+        </parameter>
+        <parameter>
+          <name>InangoplugPassword</name>
+          <type>string(64)</type>
+          <syntax>string</syntax>
+          <writable>true</writable>
+        </parameter>
+        <parameter>
+          <name>InangoplugSOServer</name>
+          <type>string(64)</type>
+          <syntax>string</syntax>
+          <writable>true</writable>
+        </parameter>
+      </parameters>
+    </object>
+  </objects>
+</dataModelInfo>
