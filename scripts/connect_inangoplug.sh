@@ -23,6 +23,7 @@ INANGOPLUG_OVS_CTL=ovs-vsctl
 BR_NAME=brlan0
 INANGOPLUG_MAC_SRC_IF_NAME=erouter0
 INANGOPLUG_DATAPATH_PREFIX=0000
+CLIENT_ID_PATH="/etc/inangoplug/clientid"
 
 # Openflow host and port here
 OF_IP=
@@ -58,10 +59,6 @@ resolve_controllers ()
     addresses="$(echo "${INANGOPLUG_RESPONSE}" | tr '{},' '\n' | grep 'address' | sed 's/"address"://' | sed 's/[" ]//g')"
     ports="$(echo "${INANGOPLUG_RESPONSE}" | tr '{},' '\n' | grep 'port' | sed 's/"port"://' | sed 's/[" ]//g')"
 
-    # Remove old controller and manager addresses
-    ovs-vsctl del-controller ${BR_NAME}
-    ovs-vsctl del-manager
-
     # Exit if we didn't get "controllers" array in $INANGOPLUG_RESPONSE
     if [ -z "${addresses}" ] || [ -z "${ports}" ] ; then
         return 1
@@ -87,14 +84,25 @@ set_datapath_id () {
     ${INANGOPLUG_OVS_CTL} set bridge ${BR_NAME} other-config:datapath-id=${INANGOPLUG_DPID}
 }
 
+set_client_id () {
+    local CLIENT_ID="UNKNOWN"
+    if [ -f ${CLIENT_ID_PATH} ]; then
+        CLIENT_ID=`sha1 "${CLIENT_ID_PATH}" | cut -d " " -f 1`
+    fi
+    ${INANGOPLUG_OVS_CTL} set bridge ${BR_NAME} other_config:dp-desc="${CLIENT_ID}"
+}
+
 configure_bridge ()
 {
+    # Configure brlan0 to use OpenFlow13 due server can work only with this version
+    ${INANGOPLUG_OVS_CTL} set bridge ${BR_NAME} protocols=OpenFlow13
+    set_client_id
     set_datapath_id
     ${INANGOPLUG_OVS_CTL} set bridge ${BR_NAME} other-config:disable-in-band=true
 
     # Remove old controller and manager addresses
-    ovs-vsctl del-controller ${BR_NAME}
-    ovs-vsctl del-manager
+    ${INANGOPLUG_OVS_CTL} del-controller ${BR_NAME}
+    ${INANGOPLUG_OVS_CTL} del-manager
 
     resolve_controllers
     if [ "$?" -eq "0" ]; then
@@ -105,6 +113,10 @@ configure_bridge ()
         ${INANGOPLUG_OVS_CTL} set-controller ${BR_NAME} tcp:${ip_addr}:${OF_PORT} || { echo "Failed to set OvS bridge controller..." && return 1; }
         ${INANGOPLUG_OVS_CTL} set-manager tcp:${ip_addr} || { echo "Failed to set OvS bridge manager..." && return 1; }
     fi
+
+    # Add default flow in case connection to servere will break.
+    # This flow will be overriden by flows received from server
+    ${INANGOPLUG_OVS_CTL} add-flow ${BR_NAME} action=normal
     echo "Successfully set up OvS bridge..!"
     return 0
 }
@@ -152,9 +164,6 @@ reg_agent ()
 
 inangoplug_register()
 {
-    # Configure brlan0 to use OpenFlow13 due server can work only with this version
-    ovs-vsctl set bridge ${BR_NAME} protocols=OpenFlow13
-
     local inangoplug_register_token=
     local inangoplug_register_response=
 
@@ -203,20 +212,31 @@ set_of_host () {
     return 0
 }
 
-check_internet() {
-    if  ping -q -c 1 -W 1 ${INANGOPLUG_SO_SERV}  > /dev/null && [ -f /sys/class/net/${INANGOPLUG_MAC_SRC_IF_NAME}/address ]; then
-        return 0
-    else
-        ovs-ofctl add-flow ${BR_NAME} action=normal
+wait_for_internet() {
+    while [ true ]
+    do
+        if  ping -q -c 1 -W 1 ${INANGOPLUG_SO_SERV}  > /dev/null && [ -f /sys/class/net/${INANGOPLUG_MAC_SRC_IF_NAME}/address ]; then
+            return 0
+        fi
+        sleep 10
+    done
+}
+
+check_inango_so_serv_addr() {
+    if [ -z ${INANGOPLUG_SO_SERV} ]
+    then
         return 1
     fi
+    return 0
 }
 
 ###
 ##  ~ Main chunk
 ###
 
-check_internet || { echo "Board doesn't have internet connection" && exit 1; }
+check_inango_so_serv_addr || { echo "Inango SO server is not set" && exit 1; }
+
+wait_for_internet
 
 INANGOPLUG_DPID=$(get_dpid)
 
