@@ -1,6 +1,6 @@
 [Unit]
 Description=OvS enabled checking
-After=PsmSsp.service
+After=logagent.service
 Before=ovsdb-server.service
 
 [Service]
