@@ -18,6 +18,8 @@
 ################################################################################
 
 INANGOPLUG_OVS_CTL=ovs-vsctl
+INANGOPLUG_OF_CTL=ovs-ofctl
+INANGOPLUG_OVS_PROTO=
 
 # Connection properties :
 BR_NAME=brlan0
@@ -29,12 +31,13 @@ CLIENT_ID_PATH="/etc/inangoplug/clientid"
 OF_IP=
 OF_PORT=6653
 # Registration data below
-INANGOPLUG_LOGIN=`dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugLogin | grep value | cut -d ':' -f 3 | sed -e 's/^[[:space:]]*//' | sed 's/ *$//g'`
-INANGOPLUG_PASSWORD=`dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugPassword | grep value | cut -d ':' -f 3 | sed -e 's/^[[:space:]]*//' | sed 's/ *$//g'`
+INANGOPLUG_SC_PRIVKEY="/nvram/openvswitch/inangoplug-sc-privkey.pem"
+INANGOPLUG_SC_CERT="/nvram/openvswitch/inangoplug-sc-cert.pem"
+INANGOPLUG_CA_CERT="/nvram/openvswitch/inangoplug-cacert.pem"
 INANGOPLUG_DPID=
 # Registration host and port here
 INANGOPLUG_SO_SERV=`dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugSOServer | grep value | cut -d ':' -f 3 | sed -e 's/^[[:space:]]*//' | sed 's/ *$//g'`
-INANGOPLUG_OF_PORT=8090
+INANGOPLUG_OF_PORT=`dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugSOServer | grep value | cut -d ':' -f 4 | sed -e 's/^[[:space:]]*//' | sed 's/ *$//g'`
 INANGOPLUG_RESPONSE=
 
 shift_list()
@@ -68,8 +71,8 @@ resolve_controllers ()
     for addr in ${addresses}; do
         local cur_port="$(get_first_in_list ${ports})"
         ports="$(shift_list ${ports})"
-        CONTROLLERS="${CONTROLLERS}tcp:${addr}:${cur_port} "
-        MANAGERS="${MANAGERS}tcp:${addr} "
+        CONTROLLERS="${CONTROLLERS}${INANGOPLUG_OVS_PROTO}:${addr}:${cur_port} "
+        MANAGERS="${MANAGERS}${INANGOPLUG_OVS_PROTO}:${addr} "
     done
 
     # Return error code if we didn't get any addresses
@@ -87,7 +90,7 @@ set_datapath_id () {
 set_client_id () {
     local CLIENT_ID="UNKNOWN"
     if [ -f ${CLIENT_ID_PATH} ]; then
-        CLIENT_ID=`sha1 "${CLIENT_ID_PATH}" | cut -d " " -f 1`
+        CLIENT_ID=`sha1sum "${CLIENT_ID_PATH}" | cut -d " " -f 1`
     fi
     ${INANGOPLUG_OVS_CTL} set bridge ${BR_NAME} other_config:dp-desc="${CLIENT_ID}"
 }
@@ -97,7 +100,6 @@ configure_bridge ()
     # Configure brlan0 to use OpenFlow13 due server can work only with this version
     ${INANGOPLUG_OVS_CTL} set bridge ${BR_NAME} protocols=OpenFlow13
     set_client_id
-    set_datapath_id
     ${INANGOPLUG_OVS_CTL} set bridge ${BR_NAME} other-config:disable-in-band=true
 
     # Remove old controller and manager addresses
@@ -110,71 +112,45 @@ configure_bridge ()
         ${INANGOPLUG_OVS_CTL} set-manager ${MANAGERS} || { echo "Failed to set OvS bridge manager..." && return 1; }
     else
         local ip_addr=$(get_right_ip_addr_format ${OF_IP})
-        ${INANGOPLUG_OVS_CTL} set-controller ${BR_NAME} tcp:${ip_addr}:${OF_PORT} || { echo "Failed to set OvS bridge controller..." && return 1; }
-        ${INANGOPLUG_OVS_CTL} set-manager tcp:${ip_addr} || { echo "Failed to set OvS bridge manager..." && return 1; }
+        ${INANGOPLUG_OVS_CTL} set-controller ${BR_NAME} ${INANGOPLUG_OVS_PROTO}:${ip_addr}:${OF_PORT} || { echo "Failed to set OvS bridge controller..." && return 1; }
+        ${INANGOPLUG_OVS_CTL} set-manager ${INANGOPLUG_OVS_PROTO}:${ip_addr} || { echo "Failed to set OvS bridge manager..." && return 1; }
     fi
 
     # Add default flow in case connection to servere will break.
     # This flow will be overriden by flows received from server
-    ${INANGOPLUG_OVS_CTL} add-flow ${BR_NAME} action=normal
+    ${INANGOPLUG_OF_CTL} add-flow ${BR_NAME} action=normal
     echo "Successfully set up OvS bridge..!"
     return 0
 }
 
-# Setting OF_IP and OF_PORT
-# Return: 0 success, 1 otherwise
-set_of_host () {
-    local parsed_host=
-    local parsed_port=
-
-    parsed_host=$(echo "${INANGOPLUG_RESPONSE}" | sed 's/[{}"]//g' | tr ',' '\n' | grep "ofHost" | sed 's/ofHost://')
-    if [ -n "${parsed_host}" ]; then
-        OF_IP=${parsed_host}
-    fi
-
-    parsed_port=$(echo "${INANGOPLUG_RESPONSE}" | sed 's/}//g' | sed 's/{//g' | tr ',' '\n' | grep "ofPort" | sed 's/.*://')
-    if [ -n "${parsed_port}" ]; then
-        OF_PORT="${parsed_port}"
-    fi
-
-    if [ -z ${OF_IP} ] || [ -z ${OF_PORT} ]; then
-        return 1
-    fi
-    return 0
-}
-
-get_token ()
-{
-    local token=
-    token=$(curl -H 'Content-Type: application/json' \
-        -X PUT -d "{\"login\": \"${INANGOPLUG_LOGIN}\", \"password\": \"${INANGOPLUG_PASSWORD}\"}" http://"${INANGOPLUG_SO_SERV}":${INANGOPLUG_OF_PORT}/auth)
-    token=$(echo ${token} | grep "data" | tr -d "{},\"" | cut -d ':' -f 4)
-    echo "${token}"
-}
-
 reg_agent ()
 {
-    local token=$1
     local response=
-
-    response=$(curl -H "Content-Type: application/json" \
-        -H "authorization: $token" -X POST -d "{\"datapathId\": \"${INANGOPLUG_DPID}\"}" http://"${INANGOPLUG_SO_SERV}":${INANGOPLUG_OF_PORT}/agents)
+    local cacet="--insecure"
+    local scprivkey="--key ${INANGOPLUG_SC_PRIVKEY}"
+    local sccert="--cert ${INANGOPLUG_SC_CERT}"
+    if [ ${INANGOPLUG_OVS_PROTO} = "tcp" ]; then
+        scprivkey=""
+        sccert=""
+    elif [ -s ${INANGOPLUG_CA_CERT} ]; then
+        cacet="--cacert ${INANGOPLUG_CA_CERT}"   
+    fi
+    response=$(curl ${cacet} ${scprivkey} ${sccert} \
+        -X GET https://"${INANGOPLUG_SO_SERV}":${INANGOPLUG_OF_PORT}/agents/controllers?datapathId=${INANGOPLUG_DPID}) 
     echo "${response}"
 }
 
 inangoplug_register()
 {
-    local inangoplug_register_token=
     local inangoplug_register_response=
 
-    if [ -z ${INANGOPLUG_LOGIN} ] || [ -z ${INANGOPLUG_PASSWORD} ] || [ -z ${INANGOPLUG_DPID} ] || [ -z ${INANGOPLUG_SO_SERV} ] || [ -z ${INANGOPLUG_OF_PORT} ]; then
+    if [ -z ${INANGOPLUG_DPID} ] || [ -z ${INANGOPLUG_SO_SERV} ] || [ -z ${INANGOPLUG_OF_PORT} ]; then
         return 1
     fi
 
     echo "-------- register board in INANGOPLUG setup --------"
 
-    inangoplug_register_token=$(get_token)
-    inangoplug_register_response=$(reg_agent ${inangoplug_register_token})
+    inangoplug_register_response=$(reg_agent)
     echo "$inangoplug_register_response"
     return 0
 }
@@ -196,20 +172,37 @@ set_of_host () {
     local parsed_host=
     local parsed_port=
 
-    parsed_host=$(echo "${INANGOPLUG_RESPONSE}" | sed 's/[{}"]//g' | tr ',' '\n' | grep "ofHost" | sed 's/ofHost://')
-    if [ -n "${parsed_host}" ]; then
-        OF_IP=${parsed_host}
-    fi
-
-    parsed_port=$(echo "${INANGOPLUG_RESPONSE}" | sed 's/}//g' | sed 's/{//g' | tr ',' '\n' | grep "ofPort" | sed 's/.*://')
+    parsed_port=$(echo "${INANGOPLUG_RESPONSE}" | sed 's/}//g' | sed 's/{//g' | tr ',' '\n' | grep "port" | sed 's/.*://')
     if [ -n "${parsed_port}" ]; then
         OF_PORT="${parsed_port}"
+    fi
+
+
+    parsed_host=$(echo "${INANGOPLUG_RESPONSE}" | sed 's/[{}"]//g' | tr ',' '\n' | grep "address" | sed -e 's/data:\[address://')
+    if [ -n "${parsed_host}" ]; then
+        OF_IP=${parsed_host}
     fi
 
     if [ -z ${OF_IP} ] || [ -z ${OF_PORT} ]; then
         return 1
     fi
     return 0
+}
+
+set_ssl_certificates() {
+    if [ ! -s ${INANGOPLUG_CA_CERT} ]; then
+        INANGOPLUG_CA_CERT="none"
+    fi
+    ${INANGOPLUG_OVS_CTL} set-ssl ${INANGOPLUG_SC_PRIVKEY} ${INANGOPLUG_SC_CERT} ${INANGOPLUG_CA_CERT}
+}
+
+set_proto() {
+    if [ -s ${INANGOPLUG_SC_PRIVKEY} ] && [ -s ${INANGOPLUG_SC_CERT} ]; then
+        echo "ssl"
+        set_ssl_certificates
+    else
+        echo "tcp"
+    fi
 }
 
 wait_for_internet() {
@@ -234,11 +227,15 @@ check_inango_so_serv_addr() {
 ##  ~ Main chunk
 ###
 
+INANGOPLUG_DPID=$(get_dpid)
+
+set_datapath_id
+
 check_inango_so_serv_addr || { echo "Inango SO server is not set" && exit 1; }
 
-wait_for_internet
+INANGOPLUG_OVS_PROTO=$(set_proto)
 
-INANGOPLUG_DPID=$(get_dpid)
+wait_for_internet
 
 INANGOPLUG_RESPONSE=$(inangoplug_register) || { echo "Registration on INANGOPLUG platform failed" && exit 1; }
 

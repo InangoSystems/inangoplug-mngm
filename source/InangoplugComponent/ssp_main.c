@@ -55,6 +55,105 @@
 extern char*                                pComponentName;
 char                                        g_Subsystem[32]         = {0};
 
+void read_file(const char * path, char * source, ULONG * size) {
+    FILE *file;
+    file = fopen(path, "r");
+    if(!file)
+    {
+        CcspTraceError(("Failed to read: file: %s , source: %s , size: %lu\n", path, source, size));
+        return;
+    }
+    fread(source, sizeof(char), size, file);
+    fclose(file);
+}
+
+void write_to_file(const char * path, char * source) {
+    FILE *file;
+    file = fopen(path, "w");
+    if(!file)
+    {
+        CcspTraceError(("Failed to write: file: %s , source: %s\n", path, source));
+        return;
+    }
+    fwrite(source, sizeof(char), strlen(source), file);
+    fclose(file);
+}
+
+/*
+ * Some ACS servers can not send string with new line characters and replaced it with spaces.
+ * Correct format key and certificates should be with new lines instead of spaces.
+ */
+void replace_spaces(char* s) {
+    int count = 0;
+    int i = 0;
+    char* d = s;
+
+    do 
+    {
+        if(*d == '-')
+        {
+            i++;
+            if (i == 5)
+            {
+                count++;
+                i = 0;
+            }
+            continue;
+        }
+        
+        if (count <= 1)
+        {
+            continue;
+        }
+        
+        if (count == 3)
+        {
+            break;
+        }
+
+        while (*d == ' ') 
+        {
+            *d = '\n';
+        }
+    } while (*s++ = *d++); 
+}
+
+void get_datapath_id(char * buf, ULONG * size)
+{
+    FILE *fp;
+    char * estr;
+    fp = popen("ovs-vsctl get bridge brlan0 other-config:datapath-id 2>&1 | sed -e 's/\"//g'", "r");
+
+    if (fp == NULL)
+    {
+        CcspTraceError(("Failed to get datapath-id\n"));
+        pclose(fp);
+        return;
+    }
+
+    estr = fgets(buf, *size, fp);
+    if (estr == NULL && feof(fp) == 0)
+    {
+        CcspTraceError(("fgets() error to get datapath-id\n"));
+        pclose(fp);
+        return;
+    }
+
+    pclose(fp);
+
+    /* Parse error message from ovs or datapath_id is null */
+    if (strstr(buf, "ovs-vsctl:") || buf[0] == '\0')
+    {
+        CcspTraceError(("Datapath-id ovs error: %s\n", buf));
+        memset(buf, 0, *size);
+        return;
+    }
+
+    buf[strcspn(buf, "\n")] = 0;
+    CcspTraceInfo(("Datapath-id: %s\n", buf));
+    return;
+}
+
 int  cmd_dispatch(int  command)
 {
     switch ( command )

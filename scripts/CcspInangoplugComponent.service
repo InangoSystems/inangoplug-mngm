@@ -7,6 +7,7 @@ WorkingDirectory=/usr/ccsp/inangoplugcomponent
 Environment="Subsys=eRT."
 Environment="LOG4C_RCPATH=/etc"
 EnvironmentFile=/etc/device.properties
+ExecStartPre=-/bin/sh -c 'mkdir /nvram/openvswitch'
 ExecStart=/usr/bin/inangoplug_component -subsys $Subsys
 StandardOutput=journal+console
 

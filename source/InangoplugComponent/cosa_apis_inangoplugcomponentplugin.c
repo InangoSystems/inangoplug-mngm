@@ -34,8 +34,14 @@
 #include <errno.h>
 #include <stdio.h>
 
+#define BUFF_SIZE 4096
+
 extern ANSC_HANDLE bus_handle;//lnt
 extern char g_Subsystem[32];//lnt
+
+const char * sc_privkey = "/nvram/openvswitch/inangoplug-sc-privkey.pem";
+const char * sc_cert = "/nvram/openvswitch/inangoplug-sc-cert.pem";
+const char * ca_cert = "/nvram/openvswitch/inangoplug-cacert.pem";
 
 /**********************************************************************  
 
@@ -87,34 +93,9 @@ InangoplugComponent_GetParamStringValue
     char out_buf[32] = {0};
     errno_t rc = -1;
 
-    if(AnscEqualString(pParamName, "InangoplugLogin", TRUE))
+    if(AnscEqualString(pParamName, "InangoplugDatapathID", TRUE))
     {
-        if (syscfg_get(NULL, "CONFIG_INANGO_INANGOPLUG_LOGIN", out_buf, sizeof(out_buf)) == 0)
-        {
-            rc = strcpy_s(pValue, *pUlSize, out_buf);
-            if (rc != EOK)
-            {
-                ERR_CHK(rc);
-                return FALSE;
-            }
-        } else {
-            return FALSE;
-        }
-    }
-
-    if(AnscEqualString(pParamName, "InangoplugPassword", TRUE))
-    {
-        if (syscfg_get(NULL, "CONFIG_INANGO_INANGOPLUG_PASSWORD", out_buf, sizeof(out_buf)) == 0)
-        {
-            rc = strcpy_s(pValue, *pUlSize, out_buf);
-            if (rc != EOK)
-            {
-                ERR_CHK(rc);
-                return FALSE;
-            }
-        } else {
-            return FALSE;
-        }
+        get_datapath_id(pValue, pUlSize);
     }
 
     if(AnscEqualString(pParamName, "InangoplugSOServer", TRUE))
@@ -131,7 +112,43 @@ InangoplugComponent_GetParamStringValue
             return FALSE;
         }
     }
-    
+
+    if(AnscEqualString(pParamName, "InangoplugPrivateKey", TRUE))
+    {
+        if (*pUlSize > BUFF_SIZE)
+        {
+            read_file(sc_privkey, pValue, pUlSize);
+        } else {
+            CcspTraceWarning(("InangoplugPrivateKey get incorrect buffer size: required buffer size: %d  current size of buffer :%d \n", BUFF_SIZE, *pUlSize));
+            *pUlSize = BUFF_SIZE + 1;
+            return 1;
+        }
+    }
+
+    if(AnscEqualString(pParamName, "InangoplugCertificate", TRUE))
+    {   
+        if (*pUlSize > BUFF_SIZE)
+        {
+            read_file(sc_cert, pValue, pUlSize);
+        } else {
+            CcspTraceWarning(("InangoplugCertificate get incorrect buffer size: required buffer size: %d  current size of buffer :%d \n", BUFF_SIZE, *pUlSize));
+            *pUlSize = BUFF_SIZE + 1;
+            return 1;
+        }
+    }
+
+    if(AnscEqualString(pParamName, "InangoplugCACertificate", TRUE))
+    {
+        if (*pUlSize > BUFF_SIZE)
+        {
+            read_file(ca_cert, pValue, pUlSize);
+        } else {
+            CcspTraceWarning(("InangoplugCACertificate get incorrect buffer size: required buffer size: %d  current size of buffer :%d: \n", BUFF_SIZE, *pUlSize));
+            *pUlSize = BUFF_SIZE + 1;
+            return 1;
+        }
+    }
+
     return FALSE;
 }
 
@@ -173,27 +190,6 @@ InangoplugComponent_SetParamStringValue
         char*                       pString
     )
 {
-    if(AnscEqualString(pParamName, "InangoplugLogin", TRUE))
-    {
-        if (syscfg_set(NULL, "CONFIG_INANGO_INANGOPLUG_LOGIN", pString) == 0)
-        {
-            if (syscfg_commit() == 0){
-                system("systemctl restart connect_inangoplug.service");
-                return TRUE;
-            }
-        }
-    }
-
-    if(AnscEqualString(pParamName, "InangoplugPassword", TRUE))
-    {
-        if (syscfg_set(NULL, "CONFIG_INANGO_INANGOPLUG_PASSWORD", pString) == 0)
-        {
-            if (syscfg_commit() == 0){
-                system("systemctl restart connect_inangoplug.service");
-                return TRUE;
-            }
-        }
-    }
 
     if(AnscEqualString(pParamName, "InangoplugSOServer", TRUE))
     {
@@ -204,6 +200,30 @@ InangoplugComponent_SetParamStringValue
                 return TRUE;
             }
         }
+    }
+
+    if(AnscEqualString(pParamName, "InangoplugPrivateKey", TRUE))
+    {
+        replace_spaces(pString);
+        write_to_file(sc_privkey, pString);
+        system("systemctl restart connect_inangoplug.service");
+        return TRUE;
+    }
+
+    if(AnscEqualString(pParamName, "InangoplugCertificate", TRUE))
+    {
+        replace_spaces(pString);
+        write_to_file(sc_cert, pString);
+        system("systemctl restart connect_inangoplug.service");
+        return TRUE;
+    }
+
+    if(AnscEqualString(pParamName, "InangoplugCACertificate", TRUE))
+    {
+        replace_spaces(pString);
+        write_to_file(ca_cert, pString);
+        system("systemctl restart connect_inangoplug.service");
+        return TRUE;
     }
 
     return FALSE;
