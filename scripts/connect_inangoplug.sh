@@ -116,9 +116,6 @@ configure_bridge ()
         ${INANGOPLUG_OVS_CTL} set-manager ${INANGOPLUG_OVS_PROTO}:${ip_addr} || { echo "Failed to set OvS bridge manager..." && return 1; }
     fi
 
-    # Add default flow in case connection to servere will break.
-    # This flow will be overriden by flows received from server
-    ${INANGOPLUG_OF_CTL} add-flow ${BR_NAME} action=normal
     echo "Successfully set up OvS bridge..!"
     return 0
 }
