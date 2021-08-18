@@ -36,8 +36,9 @@
 
 **********************************************************************************/
 
-#include "ssp_global.h"
 
+#include "ssp_global.h"
+#include "inangoplug_log.h"
 
 ANSC_HANDLE                 bus_handle               = NULL;
 extern char                 g_Subsystem[32];
@@ -88,7 +89,7 @@ ssp_Mbi_MessageBusEngage
 
     if ( ! component_id || ! path )
     {
-        CcspTraceError((" !!! ssp_Mbi_MessageBusEngage: component_id or path is NULL !!!\n"));
+        inangoplug_log_error(" !!! ssp_Mbi_MessageBusEngage: component_id or path is NULL !!!\n");
     }
 
     /* Connect to message bus */
@@ -104,12 +105,12 @@ ssp_Mbi_MessageBusEngage
 
     if ( returnStatus != ANSC_STATUS_SUCCESS )
     {
-        CcspTraceError((" !!! SSD Message Bus Init ERROR !!!\n"));
+        inangoplug_log_error(" !!! SSD Message Bus Init ERROR !!!\n");
 
         return returnStatus;
     }
 
-    CcspTraceInfo(("INFO: bus_handle: 0x%8x \n", bus_handle));
+    inangoplug_log_info("INFO: bus_handle: 0x%8x \n", bus_handle);
     g_MessageBusHandle_Irep = bus_handle;
     AnscCopyString(g_SubSysPrefix_Irep, g_Subsystem);
 
@@ -146,7 +147,7 @@ ssp_Mbi_MessageBusEngage
 
     if ( returnStatus != CCSP_Message_Bus_OK )
     {
-        CcspTraceError((" !!! CCSP_Message_Bus_Register_Path ERROR returnStatus: %d\n!!!\n", returnStatus));
+        inangoplug_log_error(" !!! CCSP_Message_Bus_Register_Path ERROR returnStatus: %d\n!!!\n", returnStatus);
 
         return returnStatus;
     }
@@ -163,7 +164,7 @@ ssp_Mbi_MessageBusEngage
 
     if ( returnStatus != CCSP_Message_Bus_OK )
     {
-         CcspTraceError((" !!! CCSP_Message_Bus_Register_Event: CurrentSessionIDSignal ERROR returnStatus: %d!!!\n", returnStatus));
+         inangoplug_log_error(" !!! CCSP_Message_Bus_Register_Event: CurrentSessionIDSignal ERROR returnStatus: %d!!!\n", returnStatus);
 
         return returnStatus;
     }

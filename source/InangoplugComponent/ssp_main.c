@@ -51,16 +51,33 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#include "inangoplug_log.h"
 
+extern ANSC_HANDLE                          bus_handle;
 extern char*                                pComponentName;
 char                                        g_Subsystem[32]         = {0};
+char                                        sc_privkey[64]          = "/sc-privkey.pem";
+char                                        sc_cert[64]             = "/sc-cert.pem";
+char                                        ca_cert[64]             = "/cacert.pem";
+
+static inline void set_path(const char * path, char * buff) {
+    char * tmp = getenv(path);
+    if (tmp == NULL || strlen(tmp) == 0)
+    {
+        inangoplug_log_error("Path: %s is not set!\n", path);
+        return;
+    }
+    memmove(&buff[strlen(tmp)], buff, strlen(buff));
+    memmove(buff, tmp, strlen(tmp));
+    inangoplug_log_info("Get config: %s\n", buff);
+}
 
 void read_file(const char * path, char * source, ULONG * size) {
     FILE *file;
     file = fopen(path, "r");
     if(!file)
     {
-        CcspTraceError(("Failed to read: file: %s , source: %s , size: %lu\n", path, source, size));
+        inangoplug_log_error("Failed to read: file: %s , source: %s , size: %lu\n", path, source, size);
         return;
     }
     fread(source, sizeof(char), size, file);
@@ -72,7 +89,7 @@ void write_to_file(const char * path, char * source) {
     file = fopen(path, "w");
     if(!file)
     {
-        CcspTraceError(("Failed to write: file: %s , source: %s\n", path, source));
+        inangoplug_log_error("Failed to write: file: %s , source: %s\n", path, source);
         return;
     }
     fwrite(source, sizeof(char), strlen(source), file);
@@ -126,7 +143,7 @@ void get_datapath_id(char * buf, ULONG * size)
 
     if (fp == NULL)
     {
-        CcspTraceError(("Failed to get datapath-id\n"));
+        inangoplug_log_error("Failed to get datapath-id\n");
         pclose(fp);
         return;
     }
@@ -134,7 +151,7 @@ void get_datapath_id(char * buf, ULONG * size)
     estr = fgets(buf, *size, fp);
     if (estr == NULL && feof(fp) == 0)
     {
-        CcspTraceError(("fgets() error to get datapath-id\n"));
+        inangoplug_log_error("fgets() error to get datapath-id\n");
         pclose(fp);
         return;
     }
@@ -144,13 +161,13 @@ void get_datapath_id(char * buf, ULONG * size)
     /* Parse error message from ovs or datapath_id is null */
     if (strstr(buf, "ovs-vsctl:") || buf[0] == '\0')
     {
-        CcspTraceError(("Datapath-id ovs error: %s\n", buf));
+        inangoplug_log_error("Datapath-id ovs error: %s\n", buf);
         memset(buf, 0, *size);
         return;
     }
 
     buf[strcspn(buf, "\n")] = 0;
-    CcspTraceInfo(("Datapath-id: %s\n", buf));
+    inangoplug_log_info("Datapath-id: %s\n", buf);
     return;
 }
 
@@ -161,7 +178,7 @@ int  cmd_dispatch(int  command)
         case    'e' :
 
 #ifdef _ANSC_LINUX
-            CcspTraceInfo(("Connect to bus daemon...\n"));
+            inangoplug_log_info("Connect to bus daemon...\n");
 
             {
                 char                            CName[256];
@@ -247,7 +264,7 @@ static void daemonize(void) {
 		break;
 	case -1:
 		// Error
-		CcspTraceInfo(("Error daemonizing (fork)! %d - %s\n", errno, strerror(errno)));
+		inangoplug_log_info("Error daemonizing (fork)! %d - %s\n", errno, strerror(errno));
 		exit(0);
 		break;
 	default:
@@ -255,7 +272,7 @@ static void daemonize(void) {
 	}
 
 	if (setsid() < 	0) {
-		CcspTraceInfo(("Error demonizing (setsid)! %d - %s\n", errno, strerror(errno)));
+		inangoplug_log_info("Error demonizing (setsid)! %d - %s\n", errno, strerror(errno));
 		exit(0);
 	}
 
@@ -286,28 +303,31 @@ void sig_handler(int sig)
 {
     if ( sig == SIGINT ) {
     	signal(SIGINT, sig_handler); /* reset it to this function */
-    	CcspTraceInfo(("SIGINT received!\n"));
+    	inangoplug_log_info("SIGINT received!\n");
 	exit(0);
     }
     else if ( sig == SIGUSR1 ) {
     	signal(SIGUSR1, sig_handler); /* reset it to this function */
-    	CcspTraceInfo(("SIGUSR1 received!\n"));
+    	inangoplug_log_info("SIGUSR1 received!\n");
+        INANGOPLUG_RDKLogLevel = GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_INANGO_Inangoplug_LogLevel");
+        INANGOPLUG_RDKLogEnable = (char)GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_INANGO_Inangoplug_LoggerEnable");
     }
     else if ( sig == SIGUSR2 ) {
-    	CcspTraceInfo(("SIGUSR2 received!\n"));
+        signal(SIGUSR2, sig_handler); /* reset it to this function */
+    	inangoplug_log_info("SIGUSR2 received!\n");
     }
     else if ( sig == SIGCHLD ) {
     	signal(SIGCHLD, sig_handler); /* reset it to this function */
-    	CcspTraceInfo(("SIGCHLD received!\n"));
+    	inangoplug_log_info("SIGCHLD received!\n");
     }
     else if ( sig == SIGPIPE ) {
     	signal(SIGPIPE, sig_handler); /* reset it to this function */
-    	CcspTraceInfo(("SIGPIPE received!\n"));
+    	inangoplug_log_info("SIGPIPE received!\n");
     }
     else {
     	/* get stack trace first */
     	_print_stack_backtrace();
-    	CcspTraceInfo(("Signal %d received, exiting!\n", sig));
+    	inangoplug_log_info("Signal %d received, exiting!\n", sig);
     	exit(0);
     }
 
@@ -321,7 +341,6 @@ int main(int argc, char* argv[])
     int                             cmdChar            = 0;
     int                             idx = 0;
 
-    extern ANSC_HANDLE bus_handle;
     char *subSys            = NULL;  
     DmErr_t    err;
 
@@ -381,8 +400,24 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Cdm_Init: %s\n", Cdm_StrError(err));
         exit(1);
     }
-    system("touch /tmp/inangoplugcomponent_initialized");
     syscfg_init();
+    inangoplug_log_init();
+    set_path("CONFIG_INANGO_INANGOPLUG_SSL_DIR", sc_privkey);
+    if (sc_privkey == NULL)
+    {
+        exit(1);
+    }
+    set_path("CONFIG_INANGO_INANGOPLUG_SSL_DIR", sc_cert);
+    if (sc_cert == NULL)
+    {
+        exit(1);
+    }
+    set_path("CONFIG_INANGO_INANGOPLUG_SSL_DIR", ca_cert);
+    if (ca_cert == NULL)
+    {
+        exit(1);
+    }
+    system("touch /tmp/inangoplugcomponent_initialized");
 
     if ( bRunAsDaemon )
     {

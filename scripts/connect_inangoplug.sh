@@ -17,6 +17,8 @@
 #
 ################################################################################
 
+source /etc/inangoplug/inangoplug.cfg
+
 INANGOPLUG_OVS_CTL=ovs-vsctl
 INANGOPLUG_OF_CTL=ovs-ofctl
 INANGOPLUG_OVS_PROTO=
@@ -31,9 +33,9 @@ CLIENT_ID_PATH="/etc/inangoplug/clientid"
 OF_IP=
 OF_PORT=6653
 # Registration data below
-INANGOPLUG_SC_PRIVKEY="/nvram/openvswitch/inangoplug-sc-privkey.pem"
-INANGOPLUG_SC_CERT="/nvram/openvswitch/inangoplug-sc-cert.pem"
-INANGOPLUG_CA_CERT="/nvram/openvswitch/inangoplug-cacert.pem"
+INANGOPLUG_SC_PRIVKEY="${CONFIG_INANGO_INANGOPLUG_SSL_DIR}/sc-privkey.pem"
+INANGOPLUG_SC_CERT="${CONFIG_INANGO_INANGOPLUG_SSL_DIR}/sc-cert.pem"
+INANGOPLUG_CA_CERT="${CONFIG_INANGO_INANGOPLUG_SSL_DIR}/cacert.pem"
 INANGOPLUG_DPID=
 # Registration host and port here
 INANGOPLUG_SO_SERV=`dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugSOServer | grep value | cut -d ':' -f 3 | sed -e 's/^[[:space:]]*//' | sed 's/ *$//g'`
@@ -220,11 +222,39 @@ check_inango_so_serv_addr() {
     return 0
 }
 
+wait_for_wan_address() {
+    echo "Wait for ${INANGOPLUG_MAC_SRC_IF_NAME} mac address..."
+    while [ true ]
+    do
+        if [ "$(sysevent get docsis-initialized)" == "1" ]; then
+            return 0
+        elif [ "$(sysevent get eth_wan_mac)" != "" ]; then
+            return 0
+        fi
+        sleep 5
+    done
+}
+
+wait_for_bridge() {
+    echo "Wait for ${BR_NAME} bridge..."
+    while [ true ]
+    do
+        if ${INANGOPLUG_OVS_CTL} show | grep -q ${BR_NAME}; then
+            return 0
+        fi
+        sleep 5
+    done
+}
+
 ###
 ##  ~ Main chunk
 ###
 
+wait_for_wan_address
+
 INANGOPLUG_DPID=$(get_dpid)
+
+wait_for_bridge
 
 set_datapath_id
 

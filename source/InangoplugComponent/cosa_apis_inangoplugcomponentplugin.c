@@ -24,7 +24,6 @@
 
 #include "ansc_platform.h"
 #include "cosa_apis_inangoplugcomponentplugin.h"
-#include "ccsp_trace.h"
 #include "ccsp_syslog.h"
 #include "safec_lib_common.h"
 #include <unistd.h>
@@ -33,15 +32,16 @@
 #include <syscfg/syscfg.h>
 #include <errno.h>
 #include <stdio.h>
+#include "inangoplug_log.h"
 
 #define BUFF_SIZE 4096
 
 extern ANSC_HANDLE bus_handle;//lnt
 extern char g_Subsystem[32];//lnt
 
-const char * sc_privkey = "/nvram/openvswitch/inangoplug-sc-privkey.pem";
-const char * sc_cert = "/nvram/openvswitch/inangoplug-sc-cert.pem";
-const char * ca_cert = "/nvram/openvswitch/inangoplug-cacert.pem";
+extern char sc_privkey[64];
+extern char sc_cert[64];
+extern char ca_cert[64];
 
 /**********************************************************************  
 
@@ -119,7 +119,7 @@ InangoplugComponent_GetParamStringValue
         {
             read_file(sc_privkey, pValue, pUlSize);
         } else {
-            CcspTraceWarning(("InangoplugPrivateKey get incorrect buffer size: required buffer size: %d  current size of buffer :%d \n", BUFF_SIZE, *pUlSize));
+            inangoplug_log_info("InangoplugPrivateKey get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
             *pUlSize = BUFF_SIZE + 1;
             return 1;
         }
@@ -131,7 +131,7 @@ InangoplugComponent_GetParamStringValue
         {
             read_file(sc_cert, pValue, pUlSize);
         } else {
-            CcspTraceWarning(("InangoplugCertificate get incorrect buffer size: required buffer size: %d  current size of buffer :%d \n", BUFF_SIZE, *pUlSize));
+            inangoplug_log_info("InangoplugCertificate get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
             *pUlSize = BUFF_SIZE + 1;
             return 1;
         }
@@ -143,7 +143,7 @@ InangoplugComponent_GetParamStringValue
         {
             read_file(ca_cert, pValue, pUlSize);
         } else {
-            CcspTraceWarning(("InangoplugCACertificate get incorrect buffer size: required buffer size: %d  current size of buffer :%d: \n", BUFF_SIZE, *pUlSize));
+            inangoplug_log_info("InangoplugCACertificate get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
             *pUlSize = BUFF_SIZE + 1;
             return 1;
         }

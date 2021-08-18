@@ -58,7 +58,7 @@
 #include "ssp_global.h"
 #include "plugin_main.h"
 #include "dslh_dmagnt_interface.h"
-#include "ccsp_trace.h"
+#include "inangoplug_log.h"
 
 PDSLH_CPE_CONTROLLER_OBJECT     pDslhCpeController        = NULL;
 PCOMPONENT_COMMON_INANGOPLUGCOMPONENT          g_pComponent_COMMON_inangoplugcomponent  = NULL;
@@ -149,7 +149,7 @@ ssp_create
 
     if ( !pDslhCpeController )
     {
-        CcspTraceWarning(("CANNOT Create pDslhCpeController... Exit!\n"));
+        inangoplug_log_warning("CANNOT Create pDslhCpeController... Exit!\n");
 
         return ANSC_STATUS_RESOURCES;
     }
