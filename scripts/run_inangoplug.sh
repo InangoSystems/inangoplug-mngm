@@ -17,12 +17,12 @@
 #
 ################################################################################
 
-OVS_ENABLE=`syscfg get CONFIG_INANGO_INANGOPLUG_ENABLE`
+OVS_ENABLE="$(syscfg get CONFIG_INANGO_INANGOPLUG_ENABLE)"
 NCPU_EXEC_SCRIPT_NAME="create_inangoplug_enable.sh"
 
-if [ "$OVS_ENABLE" == "true" ]
+if [ "${OVS_ENABLE}" == "true" ]
 then
-    ncpu_exec -ep "$NCPU_EXEC_SCRIPT_NAME"
+    ncpu_exec -ep "${NCPU_EXEC_SCRIPT_NAME}"
     exit 0
 else
     echo "OVS is disabled, exiting..."
