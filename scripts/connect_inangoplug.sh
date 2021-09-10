@@ -41,7 +41,7 @@ INANGOPLUG_SO_SERV="$(dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugSOServ
         | sed -e 's/[[:space:]]*//g' \
         | sed -e 's/:[[:digit:]]*$//g' \
     )"
-INANGOPLUG_OF_PORT="$(dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugSOServer \
+INANGOPLUG_HTTPS_PORT="$(dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugSOServer \
         | grep -E -o "value:.*$" \
         | sed -e 's/value://' \
         | sed -e 's/[[:space:]]*//g' \
@@ -127,6 +127,12 @@ reg_agent ()
     local cacet="--insecure"
     local scprivkey="--key ${INANGOPLUG_SC_PRIVKEY}"
     local sccert="--cert ${INANGOPLUG_SC_CERT}"
+    local https_port=":${INANGOPLUG_HTTPS_PORT}"
+
+    if [ -z "${INANGOPLUG_HTTPS_PORT}" ]; then
+        https_port=""
+    fi
+
     if [ "${INANGOPLUG_OVS_PROTO}" = "tcp" ]; then
         scprivkey=""
         sccert=""
@@ -134,7 +140,7 @@ reg_agent ()
         cacet="--cacert ${INANGOPLUG_CA_CERT}"
     fi
     response="$(curl ${cacet} ${scprivkey} ${sccert} -X GET \
-        https://${INANGOPLUG_SO_SERV}:${INANGOPLUG_OF_PORT}/agents/controllers?datapathId="${INANGOPLUG_DPID}")"
+        https://${INANGOPLUG_SO_SERV}${https_port}/agents/controllers?datapathId="${INANGOPLUG_DPID}")"
     echo "${response}"
 }
 
@@ -142,7 +148,7 @@ inangoplug_register()
 {
     local inangoplug_register_response=
 
-    if [ -z "${INANGOPLUG_DPID}" ] || [ -z "${INANGOPLUG_SO_SERV}" ] || [ -z "${INANGOPLUG_OF_PORT}" ]; then
+    if [ -z "${INANGOPLUG_DPID}" ] || [ -z "${INANGOPLUG_SO_SERV}" ]; then
         return 1
     fi
 
