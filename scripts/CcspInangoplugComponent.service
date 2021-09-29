@@ -1,8 +1,10 @@
 [Unit]
 Description=CcspInangoplugComponent service
+After=PsmSsp.service
 
 [Service]
 Type=forking
+PIDFile=/var/run/inangoplug_component.pid
 WorkingDirectory=/usr/ccsp/inangoplugcomponent
 Environment="Subsys=eRT."
 Environment="LOG4C_RCPATH=/etc"
@@ -12,3 +14,5 @@ ExecStartPre=-/bin/sh -c 'mkdir ${CONFIG_INANGO_INANGOPLUG_SSL_DIR}'
 ExecStart=/usr/bin/inangoplug_component -subsys $Subsys
 StandardOutput=journal+console
 
+[Install]
+WantedBy=multi-user.target

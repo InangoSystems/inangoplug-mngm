@@ -1,9 +1,0 @@
-[Unit]
-Description=OvS enabled checking
-After=logagent.service
-
-[Path]
-PathExists=/tmp/utopia_inited
-
-[Install]
-WantedBy=multi-user.target

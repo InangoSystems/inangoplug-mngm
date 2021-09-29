@@ -4,9 +4,9 @@ After=logagent.service
 Before=ovsdb-server.service
 
 [Service]
-Type=simple
-ExecStartPre=/bin/sh -c '/etc/scripts/run_inangoplug.sh'
-ExecStart=/bin/sh -c 'echo "echo OvS is enabled, starting ovsdb..."'
+Type=oneshot
+ExecStart=/bin/sh -c '/etc/scripts/run_inangoplug.sh'
+RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target

@@ -340,7 +340,8 @@ int main(int argc, char* argv[])
     BOOL                            bRunAsDaemon       = TRUE;
     int                             cmdChar            = 0;
     int                             idx = 0;
-
+    int                             fd;
+    char                            cmd[64]            = {0};
     char *subSys            = NULL;  
     DmErr_t    err;
 
@@ -373,6 +374,19 @@ int main(int argc, char* argv[])
 #elif defined(_ANSC_LINUX)
     if ( bRunAsDaemon ) 
         daemonize();
+
+    fd = fopen("/var/run/inangoplug_component.pid", "w+");
+    if ( !fd )
+    {
+        inangoplug_log_warning("Create /var/run/inangoplug_component.pid error. \n");
+        return 1;
+    }
+    else
+    {
+        sprintf(cmd, "%d", getpid());
+        fputs(cmd, fd);
+        fclose(fd);
+    }
 
     signal(SIGTERM, sig_handler);
     signal(SIGINT, sig_handler);

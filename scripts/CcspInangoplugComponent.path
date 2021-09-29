@@ -1,8 +1,0 @@
-[Unit]
-Description=Checks that the Psm initialized
-
-[Path]
-PathExists=/tmp/psm_initialized
-
-[Install]
-WantedBy=multi-user.target

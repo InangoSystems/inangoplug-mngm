@@ -1,8 +1,12 @@
 [Unit]
 Description=Inangoplug connection to server
-Requires=check_inangoplug_enabled.service
-After=check_inangoplug_enabled.service
+BindsTo=check_inangoplug_enabled.service
+After=check_inangoplug_enabled.service CcspPandMSsp.service
+ConditionPathExists=/tmp/pam_initialized
 
 [Service]
-Type=simple
+Type=oneshot
 ExecStart=/bin/sh -c '/etc/scripts/connect_inangoplug.sh'
+
+[Install]
+WantedBy=multi-user.target
