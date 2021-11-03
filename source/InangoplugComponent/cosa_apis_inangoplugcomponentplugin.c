@@ -42,6 +42,9 @@ extern char g_Subsystem[32];//lnt
 extern char sc_privkey[64];
 extern char sc_cert[64];
 extern char ca_cert[64];
+extern char sc_privkey_default[64];
+extern char sc_cert_default[64];
+extern char ca_cert_default[64];
 
 /**********************************************************************  
 
@@ -117,7 +120,13 @@ InangoplugComponent_GetParamStringValue
     {
         if (*pUlSize > BUFF_SIZE)
         {
-            read_file(sc_privkey, pValue, pUlSize);
+            if (read_file(sc_privkey, pValue, pUlSize) != 0)
+            {
+                if (read_file(sc_privkey_default, pValue, pUlSize) != 0)
+                {
+                    inangoplug_log_info("InangoplugPrivateKey default key doesn't exist");
+                }
+            }
         } else {
             inangoplug_log_info("InangoplugPrivateKey get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
             *pUlSize = BUFF_SIZE + 1;
@@ -126,10 +135,16 @@ InangoplugComponent_GetParamStringValue
     }
 
     if(AnscEqualString(pParamName, "InangoplugCertificate", TRUE))
-    {   
+    {
         if (*pUlSize > BUFF_SIZE)
         {
-            read_file(sc_cert, pValue, pUlSize);
+            if (read_file(sc_cert, pValue, pUlSize) != 0)
+            {
+                if (read_file(sc_cert_default, pValue, pUlSize) != 0)
+                {
+                    inangoplug_log_info("InangoplugCertificate default certificate doesn't exist");
+                }
+            }
         } else {
             inangoplug_log_info("InangoplugCertificate get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
             *pUlSize = BUFF_SIZE + 1;
@@ -141,7 +156,13 @@ InangoplugComponent_GetParamStringValue
     {
         if (*pUlSize > BUFF_SIZE)
         {
-            read_file(ca_cert, pValue, pUlSize);
+            if (read_file(ca_cert, pValue, pUlSize) != 0)
+            {
+                if (read_file(ca_cert_default, pValue, pUlSize) != 0)
+                {
+                    inangoplug_log_info("InangoplugCACertificate default CA certificate doesn't exist");
+                }
+            }
         } else {
             inangoplug_log_info("InangoplugCACertificate get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
             *pUlSize = BUFF_SIZE + 1;

@@ -59,29 +59,38 @@ char                                        g_Subsystem[32]         = {0};
 char                                        sc_privkey[64]          = "/sc-privkey.pem";
 char                                        sc_cert[64]             = "/sc-cert.pem";
 char                                        ca_cert[64]             = "/cacert.pem";
+char                                        sc_privkey_default[64]          = "/sc-privkey.pem";
+char                                        sc_cert_default[64]             = "/sc-cert.pem";
+char                                        ca_cert_default[64]             = "/cacert.pem";
 
-static inline void set_path(const char * path, char * buff) {
+static inline int prepend_path_to_file(const char * path, char * buff) {
+    int ret = 0;
     char * tmp = getenv(path);
     if (tmp == NULL || strlen(tmp) == 0)
     {
         inangoplug_log_error("Path: %s is not set!\n", path);
-        return;
+        ret = 1;
+        return ret;
     }
     memmove(&buff[strlen(tmp)], buff, strlen(buff));
     memmove(buff, tmp, strlen(tmp));
     inangoplug_log_info("Get config: %s\n", buff);
+    return ret;
 }
 
-void read_file(const char * path, char * source, ULONG * size) {
+int read_file(const char * path, char * source, ULONG * size) {
+    int ret = 0;
     FILE *file;
     file = fopen(path, "r");
     if(!file)
     {
         inangoplug_log_error("Failed to read: file: %s , source: %s , size: %lu\n", path, source, size);
-        return;
+        ret = 1;
+        return ret;
     }
     fread(source, sizeof(char), size, file);
     fclose(file);
+    return ret;
 }
 
 void write_to_file(const char * path, char * source) {
@@ -341,6 +350,7 @@ int main(int argc, char* argv[])
     int                             cmdChar            = 0;
     int                             idx = 0;
     int                             fd;
+    int                             ret                = 0;
     char                            cmd[64]            = {0};
     char *subSys            = NULL;  
     DmErr_t    err;
@@ -416,18 +426,23 @@ int main(int argc, char* argv[])
     }
     syscfg_init();
     inangoplug_log_init();
-    set_path("CONFIG_INANGO_INANGOPLUG_SSL_DIR", sc_privkey);
-    if (sc_privkey == NULL)
+
+    prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR", sc_privkey_default);
+    prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR", sc_cert_default);
+    prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR", ca_cert_default);
+
+    ret = prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR", sc_privkey);
+    if (ret != 0)
     {
         exit(1);
     }
-    set_path("CONFIG_INANGO_INANGOPLUG_SSL_DIR", sc_cert);
-    if (sc_cert == NULL)
+    ret = prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR", sc_cert);
+    if (ret != 0)
     {
         exit(1);
     }
-    set_path("CONFIG_INANGO_INANGOPLUG_SSL_DIR", ca_cert);
-    if (ca_cert == NULL)
+    ret = prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR", ca_cert);
+    if (ret != 0)
     {
         exit(1);
     }

@@ -17,23 +17,25 @@
 #
 ################################################################################
 
-OVS_ENABLE="$(syscfg get CONFIG_INANGO_INANGOPLUG_ENABLE)"
+SYSCFG_DB_INITED=/tmp/syscfg_inited
 NCPU_EXEC_SCRIPT_NAME="create_inangoplug_enable.sh"
 loopBreakCounter=0
 
-while [ ! -f /tmp/utopia_inited ]
+while [ ! -f "${SYSCFG_DB_INITED}" ]
 do
     if [ "$loopBreakCounter" -ne 30 ]; then
-        echo "[Inangoplug] wait for utopia..."
+        echo "[Inangoplug] wait for syscfg..."
         loopBreakCounter=$((loopBreakCounter+1))
         sleep 1
     else
-        echo "[Inangoplug] utopia is not started, exiting..."
+        echo "[Inangoplug] syscfg is not initialized, exiting..."
         exit 1
     fi
 done
 
-if [ "${OVS_ENABLE}" == "true" ]
+INANGOPLUG_ENABLE="$(syscfg get CONFIG_INANGO_INANGOPLUG_ENABLE)"
+
+if [ "${INANGOPLUG_ENABLE}" == "true" ]
 then
     ncpu_exec -ep "${NCPU_EXEC_SCRIPT_NAME}"
     if [ $? -eq 0 ]
