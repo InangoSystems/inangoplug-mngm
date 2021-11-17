@@ -18,7 +18,6 @@
 ################################################################################
 
 SYSCFG_DB_INITED=/tmp/syscfg_inited
-NCPU_EXEC_SCRIPT_NAME="create_inangoplug_enable.sh"
 loopBreakCounter=0
 
 while [ ! -f "${SYSCFG_DB_INITED}" ]
@@ -37,15 +36,11 @@ INANGOPLUG_ENABLE="$(syscfg get CONFIG_INANGO_INANGOPLUG_ENABLE)"
 
 if [ "${INANGOPLUG_ENABLE}" == "true" ]
 then
-    ncpu_exec -ep "${NCPU_EXEC_SCRIPT_NAME}"
-    if [ $? -eq 0 ]
-    then
-        echo "Inango Plug is enabled, starting..."
-        exit 0
-    else
-        echo "Failed to start Inango Plug, exiting..."
-        exit 1
-    fi
+    echo "Inango Plug is enabled, starting..."
+    exit 0
+else
+    echo "Failed to start Inango Plug, exiting..."
+    exit 1
 fi
 
 echo "Inango Plug is disabled, exiting..."
