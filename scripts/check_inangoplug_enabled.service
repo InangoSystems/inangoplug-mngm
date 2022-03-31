@@ -1,11 +1,12 @@
 [Unit]
 Description=OvS enabled checking
-After=logagent.service
+After=CcspCrSsp.service
 Before=ovsdb-server.service
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c '/etc/scripts/run_inangoplug.sh'
+ExecCondition=/bin/sh -c '/etc/scripts/run_inangoplug.sh'
+ExecStart=true
 RemainAfterExit=yes
 
 [Install]
