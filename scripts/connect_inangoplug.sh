@@ -190,32 +190,43 @@ set_ssl_certificates()
     ${INANGOPLUG_OVS_CTL} set-ssl "${INANGOPLUG_SC_PRIVKEY}" "${INANGOPLUG_SC_CERT}" "${INANGOPLUG_CA_CERT}"
 }
 
+# Returns none if certificate file is not valid
+# Returns path to file if certificate file is valid (one of runtime or default)
+validate_certificates_files()
+{
+    if [ -f $1 ]; then
+        if [ -s $1 ]; then
+            echo $1
+            return
+        fi
+        echo "none"
+    elif [ -s $2 ]; then
+        echo $2
+    else
+        echo "none"
+    fi
+}
+
 init_certificates_var() {
-    if [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_PRIVKEY}" ]; then
-        INANGOPLUG_SC_PRIVKEY="${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_PRIVKEY}"
-    elif [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_PRIVKEY}" ]; then
-        INANGOPLUG_SC_PRIVKEY="${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_PRIVKEY}"
-    else
-        echo "File sc-privkey.pem is absent or null, choose tcp..."
+    INANGOPLUG_SC_PRIVKEY="$(validate_certificates_files \
+                             ${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_PRIVKEY} \
+                             ${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_PRIVKEY})"
+    if [ "$INANGOPLUG_SC_PRIVKEY" = "none" ]; then
+        echo "File sc-privkey.pem is invalid, choose tcp..."
         return 1
     fi
 
-    if [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_CERT}" ]; then
-        INANGOPLUG_SC_CERT="${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_CERT}"
-    elif [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_CERT}" ]; then
-        INANGOPLUG_SC_CERT="${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_CERT}"
-    else
-        echo "File sc-cert.pem is absent or null, choose tcp..."
+    INANGOPLUG_SC_CERT="$(validate_certificates_files \
+                          ${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_CERT} \
+                          ${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_CERT})"
+    if [ "$INANGOPLUG_SC_CERT" = "none" ]; then
+        echo "File sc-cert.pem is invalid, choose tcp..."
         return 1
     fi
 
-    if [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_CA_CERT}" ]; then
-        INANGOPLUG_CA_CERT="${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_CA_CERT}"
-    elif [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_CA_CERT}" ]; then
-        INANGOPLUG_CA_CERT="${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_CA_CERT}"
-    else
-        INANGOPLUG_CA_CERT="none"
-    fi
+    INANGOPLUG_CA_CERT="$(validate_certificates_files \
+                          ${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_CA_CERT} \
+                          ${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_CA_CERT})"
 
     INANGOPLUG_OVS_PROTO="ssl"
     return 0
