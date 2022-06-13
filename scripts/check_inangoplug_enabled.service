@@ -1,7 +1,7 @@
 [Unit]
 Description=OvS enabled checking
-After=CcspCrSsp.service
-Before=ovsdb-server.service
+After=local-fs.target securemount.service
+Before=ovsdb-server.service gwprovapp.service gwprovapp-ethwan.service
 
 [Service]
 Type=oneshot

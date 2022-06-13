@@ -17,31 +17,20 @@
 #
 ################################################################################
 
-SYSCFG_DB_INITED=/tmp/syscfg_inited
-loopBreakCounter=0
+SYSCFG_FILE=@SYSCFG_FILE@
+INANGOPLUG_ENABLE=$(grep CONFIG_INANGO_INANGOPLUG_ENABLE ${SYSCFG_FILE} | cut -d"=" -f2)
 
-while [ ! -f "${SYSCFG_DB_INITED}" ]
-do
-    if [ "$loopBreakCounter" -ne 30 ]; then
-        echo "[Inangoplug] wait for syscfg..."
-        loopBreakCounter=$((loopBreakCounter+1))
-        sleep 1
-    else
-        echo "[Inangoplug] syscfg is not initialized, exiting..."
-        exit 1
-    fi
-done
-
-INANGOPLUG_ENABLE="$(syscfg get CONFIG_INANGO_INANGOPLUG_ENABLE)"
-
-if [ "${INANGOPLUG_ENABLE}" == "true" ]
+if [ ! -f "${SYSCFG_FILE}" ]
 then
-    echo "Inango Plug is enabled, starting..."
-    exit 0
-else
-    echo "Failed to start Inango Plug, exiting..."
+    echo "${SYSCFG_FILE} doesn't exists, assume Inango Plug is disabled"
     exit 1
 fi
 
-echo "Inango Plug is disabled, exiting..."
+if [ "${INANGOPLUG_ENABLE}" = "true" ]
+then
+    echo "Inango Plug is enabled, starting..."
+    exit 0
+fi
+
+echo "Inango Plug is disabled"
 exit 1
