@@ -343,8 +343,6 @@ void sig_handler(int sig)
     else if ( sig == SIGUSR1 ) {
     	signal(SIGUSR1, sig_handler); /* reset it to this function */
     	inangoplug_log_info("SIGUSR1 received!\n");
-        INANGOPLUG_RDKLogLevel = GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_INANGO_Inangoplug_LogLevel");
-        INANGOPLUG_RDKLogEnable = (char)GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_INANGO_Inangoplug_LoggerEnable");
     }
     else if ( sig == SIGUSR2 ) {
         signal(SIGUSR2, sig_handler); /* reset it to this function */
