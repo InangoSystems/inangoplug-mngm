@@ -18,12 +18,27 @@
 ################################################################################
 
 SYSCFG_FILE=@SYSCFG_FILE@
-INANGOPLUG_ENABLE=$(grep CONFIG_INANGO_INANGOPLUG_ENABLE ${SYSCFG_FILE} | cut -d"=" -f2)
+FACTORY_RESET_KEY=factory_reset
+FACTORY_RESET_RGWIFI=y
+INANGOPLUG_KEY=CONFIG_INANGO_INANGOPLUG_ENABLE
+INANGOPLUG_DEFAULT_FILE=/etc/inangoplug/inangoplug_defaults
 
+echo "Check Plug is enabled"
 if [ ! -f "${SYSCFG_FILE}" ]
 then
     echo "${SYSCFG_FILE} doesn't exists, assume Inango Plug is disabled"
     exit 1
+fi
+
+SYSCFG_FR_VAL=$(grep ${FACTORY_RESET_KEY} ${SYSCFG_FILE} | cut -d"=" -f2)
+
+if [ "${SYSCFG_FR_VAL}" = "${FACTORY_RESET_RGWIFI}" ]
+then
+        echo "Factory reset flag is set, check default configuration ${INANGOPLUG_DEFAULT_FILE}"
+        INANGOPLUG_ENABLE=$(grep ${INANGOPLUG_KEY} ${INANGOPLUG_DEFAULT_FILE} | cut -d"=" -f2)
+else
+        echo "Check ${SYSCFG_FILE}"
+        INANGOPLUG_ENABLE=$(grep ${INANGOPLUG_KEY} ${SYSCFG_FILE} | cut -d"=" -f2)
 fi
 
 if [ "${INANGOPLUG_ENABLE}" = "true" ]

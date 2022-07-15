@@ -8,6 +8,7 @@ Type=oneshot
 ExecCondition=/bin/sh -c '/etc/scripts/run_inangoplug.sh'
 ExecStart=true
 RemainAfterExit=yes
+StandardOutput=journal+console
 
 [Install]
 WantedBy=multi-user.target
