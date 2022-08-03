@@ -22,6 +22,10 @@ source /etc/inangoplug/inangoplug.cfg
 INANGOPLUG_OVS_CTL=ovs-vsctl
 INANGOPLUG_OVS_PROTO="tcp"
 
+# Script error codes
+EXIT_FAILURE=1
+EXIT_NO_FAILURE=2
+
 # Connection properties :
 BR_NAME=brlan0
 INANGOPLUG_MAC_SRC_IF_NAME=erouter0
@@ -35,13 +39,13 @@ INANGOPLUG_CA_CERT=/cacert.pem
 INANGOPLUG_DPID=
 
 # Registration host and port here
-INANGOPLUG_SO_SERV="$(dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugSOServer \
+INANGOPLUG_SO_SERV="$(dmcli eRT getv Device.X_INANGO.SOServer \
         | grep -E -o "value:.*$" \
         | sed -e 's/value://' \
         | sed -e 's/[[:space:]]*//g' \
         | sed -e 's/:[[:digit:]]*$//g' \
     )"
-INANGOPLUG_HTTPS_PORT="$(dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugSOServer \
+INANGOPLUG_HTTPS_PORT="$(dmcli eRT getv Device.X_INANGO.SOServer \
         | grep -E -o "value:.*$" \
         | sed -e 's/value://' \
         | sed -e 's/[[:space:]]*//g' \
@@ -154,7 +158,7 @@ reg_agent ()
             sleep 1
         else
             echo "Can't establish connection to Inango SO server, exiting..."
-            exit 1
+            exit $EXIT_FAILURE
         fi
     done
 }
@@ -169,7 +173,7 @@ inangoplug_register()
 
     echo "-------- register board in INANGOPLUG setup --------"
 
-    inangoplug_register_response="$(reg_agent)"|| { echo "Can't register Inango Plug, exiting..." && exit 1; }
+    inangoplug_register_response="$(reg_agent)"|| { echo "Can't register Inango Plug, exiting..." && exit $EXIT_FAILURE; }
     echo "$inangoplug_register_response"
     return 0
 }
@@ -191,28 +195,28 @@ set_ssl_certificates()
 }
 
 init_certificates_var() {
-    if [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_PRIVKEY}" ]; then
-        INANGOPLUG_SC_PRIVKEY="${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_PRIVKEY}"
-    elif [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_PRIVKEY}" ]; then
-        INANGOPLUG_SC_PRIVKEY="${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_PRIVKEY}"
+    if [ -s "${CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR}${INANGOPLUG_SC_PRIVKEY}" ]; then
+        INANGOPLUG_SC_PRIVKEY="${CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR}${INANGOPLUG_SC_PRIVKEY}"
+    elif [ -s "${CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR}${INANGOPLUG_SC_PRIVKEY}" ]; then
+        INANGOPLUG_SC_PRIVKEY="${CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR}${INANGOPLUG_SC_PRIVKEY}"
     else
         echo "File sc-privkey.pem is absent or null, choose tcp..."
         return 1
     fi
 
-    if [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_CERT}" ]; then
-        INANGOPLUG_SC_CERT="${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_CERT}"
-    elif [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_CERT}" ]; then
-        INANGOPLUG_SC_CERT="${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_CERT}"
+    if [ -s "${CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR}${INANGOPLUG_SC_CERT}" ]; then
+        INANGOPLUG_SC_CERT="${CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR}${INANGOPLUG_SC_CERT}"
+    elif [ -s "${CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR}${INANGOPLUG_SC_CERT}" ]; then
+        INANGOPLUG_SC_CERT="${CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR}${INANGOPLUG_SC_CERT}"
     else
         echo "File sc-cert.pem is absent or null, choose tcp..."
         return 1
     fi
 
-    if [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_CA_CERT}" ]; then
-        INANGOPLUG_CA_CERT="${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_CA_CERT}"
-    elif [ -s "${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_CA_CERT}" ]; then
-        INANGOPLUG_CA_CERT="${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_CA_CERT}"
+    if [ -s "${CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR}${INANGOPLUG_CA_CERT}" ]; then
+        INANGOPLUG_CA_CERT="${CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR}${INANGOPLUG_CA_CERT}"
+    elif [ -s "${CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR}${INANGOPLUG_CA_CERT}" ]; then
+        INANGOPLUG_CA_CERT="${CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR}${INANGOPLUG_CA_CERT}"
     else
         INANGOPLUG_CA_CERT="none"
     fi
@@ -280,17 +284,17 @@ wait_for_bridge
 
 set_datapath_id
 
-check_inango_so_serv_addr || { echo "Inango SO server is not set" && exit 1; }
-
 prepare_bridge
+
+check_inango_so_serv_addr || { echo "Inango SO server is not set" && exit $EXIT_NO_FAILURE; }
 
 init_certificates_var && set_ssl_certificates
 
 wait_for_internet
 
-INANGOPLUG_RESPONSE="$(inangoplug_register)" || { echo "Registration on Inango SO platform failed" && exit 1; }
+INANGOPLUG_RESPONSE="$(inangoplug_register)" || { echo "Registration on Inango SO platform failed" && exit $EXIT_FAILURE; }
 
 # Getting openflow host and port from INANGOPLUG json response
-resolve_controllers || { echo "Failed to get OpenFlow Controller or Manager..." && exit 1; }
+resolve_controllers || { echo "Failed to get OpenFlow Controller or Manager..." && exit $EXIT_FAILURE; }
 
 configure_bridge

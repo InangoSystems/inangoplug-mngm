@@ -96,14 +96,17 @@ InangoplugComponent_GetParamStringValue
     char out_buf[32] = {0};
     errno_t rc = -1;
 
-    if(AnscEqualString(pParamName, "InangoplugDatapathID", TRUE))
+    /* From here and below we compare two values from TR-181-InangoplugComponent.xml model because we
+       keep old and new namings
+    */
+    if((AnscEqualString(pParamName, "InangoplugDatapathID", TRUE)) || (AnscEqualString(pParamName, "DatapathID", TRUE)))
     {
         get_datapath_id(pValue, pUlSize);
     }
 
-    if(AnscEqualString(pParamName, "InangoplugSOServer", TRUE))
+    if((AnscEqualString(pParamName, "InangoplugSOServer", TRUE)) || (AnscEqualString(pParamName, "SOServer", TRUE)))
     {
-        if (syscfg_get(NULL, "CONFIG_INANGO_INANGOPLUG_SO_SERVER", out_buf, sizeof(out_buf)) == 0)
+        if (syscfg_get(NULL, "CONFIG_INANGO_SO_SERVER", out_buf, sizeof(out_buf)) == 0)
         {
             rc = strcpy_s(pValue, *pUlSize, out_buf);
             if (rc != EOK)
@@ -116,7 +119,7 @@ InangoplugComponent_GetParamStringValue
         }
     }
 
-    if(AnscEqualString(pParamName, "InangoplugPrivateKey", TRUE))
+    if((AnscEqualString(pParamName, "InangoplugPrivateKey", TRUE)) || (AnscEqualString(pParamName, "PrivateKey", TRUE)))
     {
         if (*pUlSize > BUFF_SIZE)
         {
@@ -124,17 +127,17 @@ InangoplugComponent_GetParamStringValue
             {
                 if (read_file(sc_privkey_default, pValue, pUlSize) != 0)
                 {
-                    inangoplug_log_info("InangoplugPrivateKey default key doesn't exist");
+                    inangoplug_log_info("PrivateKey default key doesn't exist");
                 }
             }
         } else {
-            inangoplug_log_info("InangoplugPrivateKey get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
+            inangoplug_log_info("PrivateKey get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
             *pUlSize = BUFF_SIZE + 1;
             return 1;
         }
     }
 
-    if(AnscEqualString(pParamName, "InangoplugCertificate", TRUE))
+    if((AnscEqualString(pParamName, "InangoplugCertificate", TRUE)) || (AnscEqualString(pParamName, "Certificate", TRUE)))
     {
         if (*pUlSize > BUFF_SIZE)
         {
@@ -142,17 +145,17 @@ InangoplugComponent_GetParamStringValue
             {
                 if (read_file(sc_cert_default, pValue, pUlSize) != 0)
                 {
-                    inangoplug_log_info("InangoplugCertificate default certificate doesn't exist");
+                    inangoplug_log_info("Certificate default certificate doesn't exist");
                 }
             }
         } else {
-            inangoplug_log_info("InangoplugCertificate get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
+            inangoplug_log_info("Certificate get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
             *pUlSize = BUFF_SIZE + 1;
             return 1;
         }
     }
 
-    if(AnscEqualString(pParamName, "InangoplugCACertificate", TRUE))
+    if((AnscEqualString(pParamName, "InangoplugCACertificate", TRUE)) || (AnscEqualString(pParamName, "CACertificate", TRUE)))
     {
         if (*pUlSize > BUFF_SIZE)
         {
@@ -160,11 +163,11 @@ InangoplugComponent_GetParamStringValue
             {
                 if (read_file(ca_cert_default, pValue, pUlSize) != 0)
                 {
-                    inangoplug_log_info("InangoplugCACertificate default CA certificate doesn't exist");
+                    inangoplug_log_info("CACertificate default CA certificate doesn't exist");
                 }
             }
         } else {
-            inangoplug_log_info("InangoplugCACertificate get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
+            inangoplug_log_info("CACertificate get incorrect buffer size: required buffer size: %d current size of buffer :%d\n", BUFF_SIZE, *pUlSize);
             *pUlSize = BUFF_SIZE + 1;
             return 1;
         }
@@ -212,9 +215,9 @@ InangoplugComponent_SetParamStringValue
     )
 {
 
-    if(AnscEqualString(pParamName, "InangoplugSOServer", TRUE))
+    if((AnscEqualString(pParamName, "InangoplugSOServer", TRUE)) || (AnscEqualString(pParamName, "SOServer", TRUE)))
     {
-        if (syscfg_set(NULL, "CONFIG_INANGO_INANGOPLUG_SO_SERVER", pString) == 0)
+        if (syscfg_set(NULL, "CONFIG_INANGO_SO_SERVER", pString) == 0)
         {
             if (syscfg_commit() == 0){
                 system("systemctl restart connect_inangoplug.service");
@@ -223,7 +226,7 @@ InangoplugComponent_SetParamStringValue
         }
     }
 
-    if(AnscEqualString(pParamName, "InangoplugPrivateKey", TRUE))
+    if((AnscEqualString(pParamName, "InangoplugPrivateKey", TRUE)) || (AnscEqualString(pParamName, "PrivateKey", TRUE)))
     {
         replace_spaces(pString);
         write_to_file(sc_privkey, pString);
@@ -231,7 +234,7 @@ InangoplugComponent_SetParamStringValue
         return TRUE;
     }
 
-    if(AnscEqualString(pParamName, "InangoplugCertificate", TRUE))
+    if((AnscEqualString(pParamName, "InangoplugCertificate", TRUE)) || (AnscEqualString(pParamName, "Certificate", TRUE)))
     {
         replace_spaces(pString);
         write_to_file(sc_cert, pString);
@@ -239,7 +242,7 @@ InangoplugComponent_SetParamStringValue
         return TRUE;
     }
 
-    if(AnscEqualString(pParamName, "InangoplugCACertificate", TRUE))
+    if((AnscEqualString(pParamName, "InangoplugCACertificate", TRUE)) || (AnscEqualString(pParamName, "CACertificate", TRUE)))
     {
         replace_spaces(pString);
         write_to_file(ca_cert, pString);
@@ -292,9 +295,9 @@ InangoplugComponent_GetParamBoolValue
     errno_t rc = -1;
     int ind = -1;
 
-    if(AnscEqualString(pParamName, "InangoplugEnable", TRUE))
+    if((AnscEqualString(pParamName, "InangoplugEnable", TRUE)) || (AnscEqualString(pParamName, "Enable", TRUE)))
     {
-        if (syscfg_get(NULL, "CONFIG_INANGO_INANGOPLUG_ENABLE", out_buf, sizeof(out_buf)) == 0)
+        if (syscfg_get(NULL, "CONFIG_OVS_INFRASTRUCTURE_ENABLE", out_buf, sizeof(out_buf)) == 0)
         {
             rc = strcmp_s("true", strlen("true"), out_buf, &ind);
             ERR_CHK(rc);
@@ -352,9 +355,9 @@ InangoplugComponent_SetParamBoolValue
         BOOL                        bValue
     )
 {
-    if(AnscEqualString(pParamName, "InangoplugEnable", TRUE))
+    if((AnscEqualString(pParamName, "InangoplugEnable", TRUE)) || (AnscEqualString(pParamName, "Enable", TRUE)))
     {
-        if (syscfg_set(NULL, "CONFIG_INANGO_INANGOPLUG_ENABLE", bValue ? "true" : "false") == 0)
+        if (syscfg_set(NULL, "CONFIG_OVS_INFRASTRUCTURE_ENABLE", bValue ? "true" : "false") == 0)
         {
             if (syscfg_commit() == 0){
                 return TRUE;

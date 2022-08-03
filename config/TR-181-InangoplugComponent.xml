@@ -54,5 +54,65 @@
         </parameter>
       </parameters>
     </object>
+    <object>
+      <name>OvsInfrastructure</name>
+      <objectType>object</objectType>
+      <functions>
+        <func_GetParamStringValue>InangoplugComponent_GetParamStringValue</func_GetParamStringValue>
+        <func_SetParamStringValue>InangoplugComponent_SetParamStringValue</func_SetParamStringValue>
+        <func_GetParamBoolValue>InangoplugComponent_GetParamBoolValue</func_GetParamBoolValue>
+        <func_SetParamBoolValue>InangoplugComponent_SetParamBoolValue</func_SetParamBoolValue>
+      </functions>
+      <parameters>
+        <parameter>
+          <name>Enable</name>
+          <type>boolean</type>
+          <syntax>bool</syntax>
+          <writable>true</writable>
+        </parameter>
+        <parameter>
+          <name>DatapathID</name>
+          <type>string(16)</type>
+          <syntax>string</syntax>
+          <writable>false</writable>
+        </parameter>
+        <parameter>
+          <name>PrivateKey</name>
+          <type>string(4096)</type>
+          <syntax>string</syntax>
+          <writable>true</writable>
+        </parameter>
+        <parameter>
+          <name>Certificate</name>
+          <type>string(4096)</type>
+          <syntax>string</syntax>
+          <writable>true</writable>
+        </parameter>
+        <parameter>
+          <name>CACertificate</name>
+          <type>string(4096)</type>
+          <syntax>string</syntax>
+          <writable>true</writable>
+        </parameter>
+      </parameters>
+    </object>
+    <object>
+      <name>X_INANGO</name>
+      <objectType>object</objectType>
+      <functions>
+        <func_GetParamStringValue>InangoplugComponent_GetParamStringValue</func_GetParamStringValue>
+        <func_SetParamStringValue>InangoplugComponent_SetParamStringValue</func_SetParamStringValue>
+        <func_GetParamBoolValue>InangoplugComponent_GetParamBoolValue</func_GetParamBoolValue>
+        <func_SetParamBoolValue>InangoplugComponent_SetParamBoolValue</func_SetParamBoolValue>
+      </functions>
+      <parameters>
+        <parameter>
+          <name>SOServer</name>
+          <type>string(64)</type>
+          <syntax>string</syntax>
+          <writable>true</writable>
+        </parameter>
+      </parameters>
+    </object>
   </objects>
 </dataModelInfo>
