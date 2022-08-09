@@ -22,6 +22,10 @@ source /etc/inangoplug/inangoplug.cfg
 INANGOPLUG_OVS_CTL=ovs-vsctl
 INANGOPLUG_OVS_PROTO="tcp"
 
+# Script error codes
+EXIT_RESTART=1
+EXIT_NO_RESTART=2
+
 # Connection properties :
 BR_NAME=brlan0
 INANGOPLUG_MAC_SRC_IF_NAME=erouter0
@@ -35,13 +39,13 @@ INANGOPLUG_CA_CERT=/cacert.pem
 INANGOPLUG_DPID=
 
 # Registration host and port here
-INANGOPLUG_SO_SERV="$(dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugSOServer \
+INANGOPLUG_SO_SERV="$(dmcli eRT getv Device.X_INANGO.SOServer \
         | grep -E -o "value:.*$" \
         | sed -e 's/value://' \
         | sed -e 's/[[:space:]]*//g' \
         | sed -e 's/:[[:digit:]]*$//g' \
     )"
-INANGOPLUG_HTTPS_PORT="$(dmcli eRT getv Device.X_INANGO_Inangoplug.InangoplugSOServer \
+INANGOPLUG_HTTPS_PORT="$(dmcli eRT getv Device.X_INANGO.SOServer \
         | grep -E -o "value:.*$" \
         | sed -e 's/value://' \
         | sed -e 's/[[:space:]]*//g' \
@@ -128,8 +132,6 @@ reg_agent ()
     local scprivkey="--key ${INANGOPLUG_SC_PRIVKEY}"
     local sccert="--cert ${INANGOPLUG_SC_CERT}"
     local https_port=":${INANGOPLUG_HTTPS_PORT}"
-    local loopBreakCounter=0
-    local retries=30
 
     if [ -z "${INANGOPLUG_HTTPS_PORT}" ]; then
         https_port=""
@@ -142,21 +144,14 @@ reg_agent ()
         cacet="--cacert ${INANGOPLUG_CA_CERT}"
     fi
 
-    while [ true ]
-    do
-        if response="$(curl ${cacet} ${scprivkey} ${sccert} -X GET \
-        https://${INANGOPLUG_SO_SERV}${https_port}/agents/controllers?datapathId="${INANGOPLUG_DPID}")"; then
-            echo "${response}"
-            break
-        elif [ "$loopBreakCounter" -ne "$retries" ]; then
-            echo "Connection to Inango SO server failed, repeating request..."
-            loopBreakCounter=$((loopBreakCounter+1))
-            sleep 1
-        else
-            echo "Can't establish connection to Inango SO server, exiting..."
-            exit 1
-        fi
-    done
+
+    if response="$(curl ${cacet} ${scprivkey} ${sccert} -X GET \
+    https://${INANGOPLUG_SO_SERV}${https_port}/agents/controllers?datapathId="${INANGOPLUG_DPID}")"; then
+        echo "${response}"
+        return 0
+    else
+        return 1
+    fi
 }
 
 inangoplug_register()
@@ -169,7 +164,7 @@ inangoplug_register()
 
     echo "-------- register board in INANGOPLUG setup --------"
 
-    inangoplug_register_response="$(reg_agent)"|| { echo "Can't register Inango Plug, exiting..." && exit 1; }
+    inangoplug_register_response="$(reg_agent)"|| { echo "Can't register Inango Plug, exiting..." && exit $EXIT_RESTART; }
     echo "$inangoplug_register_response"
     return 0
 }
@@ -209,37 +204,35 @@ validate_certificates_files()
 
 init_certificates_var() {
     INANGOPLUG_SC_PRIVKEY="$(validate_certificates_files \
-                             ${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_PRIVKEY} \
-                             ${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_PRIVKEY})"
+                             ${CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR}${INANGOPLUG_SC_PRIVKEY} \
+                             ${CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR}${INANGOPLUG_SC_PRIVKEY})"
     if [ "$INANGOPLUG_SC_PRIVKEY" = "none" ]; then
         echo "File sc-privkey.pem is invalid, choose tcp..."
         return 1
     fi
 
     INANGOPLUG_SC_CERT="$(validate_certificates_files \
-                          ${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_SC_CERT} \
-                          ${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_SC_CERT})"
+                          ${CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR}${INANGOPLUG_SC_CERT} \
+                          ${CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR}${INANGOPLUG_SC_CERT})"
     if [ "$INANGOPLUG_SC_CERT" = "none" ]; then
         echo "File sc-cert.pem is invalid, choose tcp..."
         return 1
     fi
 
     INANGOPLUG_CA_CERT="$(validate_certificates_files \
-                          ${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}${INANGOPLUG_CA_CERT} \
-                          ${CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR}${INANGOPLUG_CA_CERT})"
+                          ${CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR}${INANGOPLUG_CA_CERT} \
+                          ${CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR}${INANGOPLUG_CA_CERT})"
 
     INANGOPLUG_OVS_PROTO="ssl"
     return 0
 }
 
-wait_for_internet() {
-    while [ true ]
-    do
-        if  ping -q -c 1 -W 1 ${INANGOPLUG_SO_SERV}  > /dev/null && [ -f /sys/class/net/${INANGOPLUG_MAC_SRC_IF_NAME}/address ]; then
-            return 0
-        fi
-        sleep 10
-    done
+check_for_internet() {
+    if  ping -q -c 1 -W 1 ${INANGOPLUG_SO_SERV}  > /dev/null && [ -f /sys/class/net/${INANGOPLUG_MAC_SRC_IF_NAME}/address ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 check_inango_so_serv_addr() {
@@ -250,31 +243,29 @@ check_inango_so_serv_addr() {
     return 0
 }
 
-wait_for_wan_address() {
-    echo "Wait for ${INANGOPLUG_MAC_SRC_IF_NAME} mac address..."
-    while [ true ]
-    do
-        if [ "$(sysevent get docsis-initialized)" == "1" ]; then
-            return 0
-        elif [ "$(sysevent get eth_wan_mac)" != "" ]; then
-            return 0
-        fi
-        sleep 5
-    done
+check_for_wan_address() {
+    echo "Check for ${INANGOPLUG_MAC_SRC_IF_NAME} mac address..."
+
+    if [ "$(sysevent get docsis-initialized)" == "1" ]; then
+        return 0
+    elif [ "$(sysevent get eth_wan_mac)" != "" ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
-wait_for_bridge() {
-    echo "Wait for ${BR_NAME} bridge..."
-    while [ true ]
-    do
-        if ${INANGOPLUG_OVS_CTL} show | grep -q ${BR_NAME}; then
-            return 0
-        fi
-        sleep 5
-    done
+check_for_bridge() {
+    echo "Check for ${BR_NAME} bridge..."
+
+    if ${INANGOPLUG_OVS_CTL} show | grep -q ${BR_NAME}; then
+        return 0
+    else
+        return 1
+    fi
 }
 
-prepare_bridge() {
+reset_bridge() {
     # Remove old controller and manager addresses
     ${INANGOPLUG_OVS_CTL} del-controller ${BR_NAME}
     ${INANGOPLUG_OVS_CTL} del-manager
@@ -283,25 +274,25 @@ prepare_bridge() {
 ##  ~ Main chunk
 ###
 
-wait_for_wan_address
+check_for_wan_address || { echo "Couldn't get wan address" && exit $EXIT_RESTART; }
 
 INANGOPLUG_DPID="$(get_dpid)"
 
-wait_for_bridge
+check_for_bridge || { echo "Couldn't get bridge ${BR_NAME}" && exit $EXIT_RESTART; }
 
 set_datapath_id
 
-check_inango_so_serv_addr || { echo "Inango SO server is not set" && exit 1; }
+reset_bridge
 
-prepare_bridge
+check_inango_so_serv_addr || { echo "Inango SO server is not set" && exit $EXIT_NO_RESTART; }
 
 init_certificates_var && set_ssl_certificates
 
-wait_for_internet
+check_for_internet || { echo "Don't get internet connection" && exit $EXIT_RESTART; }
 
-INANGOPLUG_RESPONSE="$(inangoplug_register)" || { echo "Registration on Inango SO platform failed" && exit 1; }
+INANGOPLUG_RESPONSE="$(inangoplug_register)" || { echo "Registration on Inango SO platform failed" && exit $EXIT_RESTART; }
 
 # Getting openflow host and port from INANGOPLUG json response
-resolve_controllers || { echo "Failed to get OpenFlow Controller or Manager..." && exit 1; }
+resolve_controllers || { echo "Failed to get OpenFlow Controller or Manager..." && exit $EXIT_RESTART; }
 
 configure_bridge

@@ -7,6 +7,9 @@ ConditionPathExists=/tmp/pam_initialized
 [Service]
 Type=simple
 ExecStart=/bin/sh -c '/etc/scripts/connect_inangoplug.sh'
+SuccessExitStatus=2
+Restart=on-failure
+RestartSec=20s
 
 [Install]
 WantedBy=multi-user.target

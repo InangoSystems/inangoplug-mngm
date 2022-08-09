@@ -72,7 +72,7 @@ static inline void set_arm_inangoplug_enable() {
     errno_t rc = -1;
     int ind = -1;
 
-    if (syscfg_get(NULL, "CONFIG_INANGO_INANGOPLUG_ENABLE", out_buf, sizeof(out_buf)) == 0)
+    if (syscfg_get(NULL, "CONFIG_OVS_INFRASTRUCTURE_ENABLE", out_buf, sizeof(out_buf)) == 0)
     {
         rc = strcmp_s("true", strlen("true"), out_buf, &ind);
         ERR_CHK(rc);
@@ -450,21 +450,21 @@ int main(int argc, char* argv[])
     syscfg_init();
     inangoplug_log_init();
     set_arm_inangoplug_enable();
-    prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR", sc_privkey_default);
-    prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR", sc_cert_default);
-    prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_DEFAULT_DIR", ca_cert_default);
+    prepend_path_to_file("CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR", sc_privkey_default);
+    prepend_path_to_file("CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR", sc_cert_default);
+    prepend_path_to_file("CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR", ca_cert_default);
 
-    ret = prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR", sc_privkey);
+    ret = prepend_path_to_file("CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR", sc_privkey);
     if (ret != 0)
     {
         exit(1);
     }
-    ret = prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR", sc_cert);
+    ret = prepend_path_to_file("CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR", sc_cert);
     if (ret != 0)
     {
         exit(1);
     }
-    ret = prepend_path_to_file("CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR", ca_cert);
+    ret = prepend_path_to_file("CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR", ca_cert);
     if (ret != 0)
     {
         exit(1);

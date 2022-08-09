@@ -10,7 +10,7 @@ Environment="Subsys=eRT."
 Environment="LOG4C_RCPATH=/etc"
 EnvironmentFile=/etc/device.properties
 EnvironmentFile=/etc/inangoplug/inangoplug.cfg
-ExecStartPre=-/bin/sh -c 'mkdir -p ${CONFIG_INANGO_INANGOPLUG_SSL_RUNTIME_DIR}'
+ExecStartPre=-/bin/sh -c 'mkdir -p ${CONFIG_OVS_INFRASTRUCTURE_SSL_RUNTIME_DIR}'
 ExecStart=/usr/bin/inangoplug_component -subsys $Subsys
 StandardOutput=journal+console
 
