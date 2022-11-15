@@ -23,25 +23,25 @@ loopBreakCounter=0
 while [ ! -f "${SYSCFG_DB_INITED}" ]
 do
     if [ "$loopBreakCounter" -ne 30 ]; then
-        echo "[Inangoplug] wait for syscfg..."
+        echo "[ovs-infra] wait for syscfg..."
         loopBreakCounter=$((loopBreakCounter+1))
         sleep 1
     else
-        echo "[Inangoplug] syscfg is not initialized, exiting..."
+        echo "[ovs-infra] syscfg is not initialized, exiting..."
         exit 1
     fi
 done
 
-INANGOPLUG_ENABLE="$(syscfg get CONFIG_OVS_INFRASTRUCTURE_ENABLE)"
+OVS_INFRASTRUCTURE_ENABLE="$(syscfg get CONFIG_OVS_INFRASTRUCTURE_ENABLE)"
 
-if [ "${INANGOPLUG_ENABLE}" == "true" ]
+if [ "${OVS_INFRASTRUCTURE_ENABLE}" == "true" ]
 then
-    echo "Inango Plug is enabled, starting..."
+    echo "OVS Infrastructure is enabled, starting..."
     exit 0
 else
-    echo "Failed to start Inango Plug, exiting..."
+    echo "Failed to start OVS Infrastructure, exiting..."
     exit 1
 fi
 
-echo "Inango Plug is disabled, exiting..."
+echo "OVS Infrastructure is disabled, exiting..."
 exit 1

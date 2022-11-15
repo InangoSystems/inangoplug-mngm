@@ -5,7 +5,8 @@ Before=ovsdb-server.service
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c '/etc/scripts/run_inangoplug.sh'
+ExecCondition=/bin/sh -c '/etc/scripts/run_ovs_infra.sh'
+ExecStart=true
 RemainAfterExit=yes
 
 [Install]

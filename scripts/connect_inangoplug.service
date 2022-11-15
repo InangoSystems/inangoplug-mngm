@@ -1,7 +1,7 @@
 [Unit]
 Description=Inangoplug connection to server
-BindsTo=check_inangoplug_enabled.service
-After=check_inangoplug_enabled.service CcspPandMSsp.service
+BindsTo=check_ovs_infra_enabled.service
+After=check_ovs_infra_enabled.service CcspPandMSsp.service
 ConditionPathExists=/tmp/pam_initialized
 
 [Service]
