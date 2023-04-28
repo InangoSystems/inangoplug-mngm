@@ -29,9 +29,8 @@ bin_PROGRAMS = inangoplug_component
 AM_CPPFLAGS = -I$(top_srcdir)/hal/include \
 		-I$(top_srcdir)/source/InangoplugComponent \
 		-I=${includedir} \
-		-I=${includedir}/ccsp \
-		-I=${includedir}/tirpc
+		-I=${includedir}/ccsp
 
 inangoplug_component_SOURCES = cosa_apis_inangoplugcomponentplugin.c plugin_main.c ssp_action.c ssp_messagebus_interface.c ssp_main.c
 inangoplug_component_CFLAGS = -D_ANSC_LINUX -D_ANSC_USER -D_ANSC_LITTLE_ENDIAN_ $(DBUS_CFLAGS) -DFEATURE_SUPPORT_RDKLOG
-inangoplug_component_LDFLAGS = -lccsp_common $(DBUS_LIBS) -lrdkloggers -llog4c -lpthread -ltirpc -lgwapiproxy
+inangoplug_component_LDFLAGS = -lccsp_common $(DBUS_LIBS) -lrdkloggers -llog4c

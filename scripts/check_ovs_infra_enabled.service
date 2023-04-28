@@ -5,7 +5,7 @@ Before=ovsdb-server.service gwprovapp.service gwprovapp-ethwan.service
 
 [Service]
 Type=oneshot
-ExecCondition=/bin/sh -c '/etc/scripts/run_inangoplug.sh'
+ExecCondition=/bin/sh -c '/etc/scripts/run_ovs_infra.sh'
 ExecStart=true
 RemainAfterExit=yes
 StandardOutput=journal+console
