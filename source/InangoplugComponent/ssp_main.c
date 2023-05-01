@@ -52,8 +52,6 @@
 #include <string.h>
 #include <stdio.h>
 #include "inangoplug_log.h"
-#include "gw_api_proxy.h"
-#include "safec_lib_common.h"
 
 extern ANSC_HANDLE                          bus_handle;
 extern char*                                pComponentName;
@@ -64,29 +62,6 @@ char                                        ca_cert[64]             = "/cacert.p
 char                                        sc_privkey_default[64]          = "/sc-privkey.pem";
 char                                        sc_cert_default[64]             = "/sc-cert.pem";
 char                                        ca_cert_default[64]             = "/cacert.pem";
-
-static inline void set_arm_inangoplug_enable() {
-    PROXY_STATUS clnt_res;
-    int retval = 0;
-    char out_buf[32] = {0};
-    errno_t rc = -1;
-    int ind = -1;
-
-    if (syscfg_get(NULL, "CONFIG_OVS_INFRASTRUCTURE_ENABLE", out_buf, sizeof(out_buf)) == 0)
-    {
-        rc = strcmp_s("true", strlen("true"), out_buf, &ind);
-        ERR_CHK(rc);
-        if ((rc == EOK) && (ind == 0))
-        {
-            retval = proxy_set_arm_inangoplug_enable_1(&clnt_res, getGwProvApiProxyHandle());
-            if (STATUS_OK != retval)
-            {
-                inangoplug_log_error("Starting ARM RSC server failed!\n");
-            }
-        }
-    }
-    return;
-}
 
 static inline int prepend_path_to_file(const char * path, char * buff) {
     int ret = 0;
@@ -449,7 +424,6 @@ int main(int argc, char* argv[])
     }
     syscfg_init();
     inangoplug_log_init();
-    set_arm_inangoplug_enable();
     prepend_path_to_file("CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR", sc_privkey_default);
     prepend_path_to_file("CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR", sc_cert_default);
     prepend_path_to_file("CONFIG_OVS_INFRASTRUCTURE_SSL_DEFAULT_DIR", ca_cert_default);
